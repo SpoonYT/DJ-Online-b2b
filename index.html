@@ -1,0 +1,1632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>B2B LIVE — Remote DJ Sessions</title>
+<script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;500;700;800&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #080810;
+  --surface: #0f0f1c;
+  --card: #161625;
+  --card2: #1c1c2e;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.12);
+  --text: #eeeeff;
+  --muted: rgba(238,238,255,0.38);
+  --mono: 'Space Mono', monospace;
+  --display: 'Syne', sans-serif;
+  --red: #e8365d;
+  --blue: #3b9eff;
+  --green: #4fffb0;
+  --amber: #ffc846;
+  --red-dim: rgba(232,54,93,0.12);
+  --blue-dim: rgba(59,158,255,0.10);
+}
+
+html, body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--display);
+  overflow: hidden;
+}
+
+/* ─── SCREENS ─── */
+.screen { display: none; width: 100vw; height: 100vh; }
+.screen.active { display: flex; }
+
+/* ─── LOBBY ─── */
+#lobby {
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  background:
+    radial-gradient(ellipse 60% 40% at 20% 80%, rgba(232,54,93,0.08) 0%, transparent 70%),
+    radial-gradient(ellipse 50% 40% at 80% 20%, rgba(59,158,255,0.07) 0%, transparent 70%),
+    var(--bg);
+}
+
+.lobby-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 40px;
+  width: 100%;
+  max-width: 420px;
+  padding: 0 24px;
+}
+
+.logo-wrap { text-align: center; }
+
+.logo-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.logo-vinyl {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 2px solid var(--red);
+  background: conic-gradient(from 0deg, #111 0%, #222 30%, #111 60%, #1a1a1a 100%);
+  position: relative;
+  animation: spin 3s linear infinite;
+}
+
+.logo-vinyl::after {
+  content: '';
+  position: absolute;
+  inset: 35%;
+  border-radius: 50%;
+  background: var(--red);
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.logo-name {
+  font-family: var(--mono);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: var(--text);
+}
+
+.logo-tagline {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.lobby-card {
+  background: var(--card);
+  border: 0.5px solid var(--border2);
+  border-radius: 16px;
+  padding: 28px 28px 24px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.field-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  display: block;
+  margin-bottom: 6px;
+}
+
+input[type="text"] {
+  width: 100%;
+  background: rgba(255,255,255,0.04);
+  border: 0.5px solid var(--border2);
+  border-radius: 8px;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 13px;
+  padding: 11px 14px;
+  outline: none;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+input[type="text"]:focus {
+  border-color: var(--red);
+  background: rgba(232,54,93,0.05);
+}
+
+input[type="text"]::placeholder { color: var(--muted); }
+
+.btn {
+  width: 100%;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  padding: 12px 20px;
+  text-transform: uppercase;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn:active { transform: scale(0.97); }
+
+.btn-red { background: var(--red); color: #fff; }
+.btn-red:hover { background: #ff4570; }
+
+.btn-ghost {
+  background: transparent;
+  border: 0.5px solid var(--border2);
+  color: var(--text);
+}
+
+.btn-ghost:hover { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.22); }
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+}
+.divider::before, .divider::after { content: ''; flex: 1; height: 0.5px; background: var(--border); }
+
+.waiting-state { display: none; flex-direction: column; align-items: center; gap: 16px; }
+
+.big-code {
+  font-family: var(--mono);
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: 0.3em;
+  color: var(--blue);
+  background: rgba(59,158,255,0.08);
+  border: 0.5px solid rgba(59,158,255,0.25);
+  border-radius: 10px;
+  padding: 14px 24px;
+  text-align: center;
+  width: 100%;
+}
+
+.waiting-hint {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--muted);
+  text-align: center;
+  line-height: 1.7;
+}
+
+.pulse-ring {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--green);
+  animation: pulse 1.6s ease-in-out infinite;
+  display: inline-block;
+}
+
+@keyframes pulse {
+  0%,100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.75); }
+}
+
+/* ─── SESSION ─── */
+#session {
+  flex-direction: column;
+  background:
+    radial-gradient(ellipse 40% 30% at 0% 100%, rgba(232,54,93,0.06) 0%, transparent 60%),
+    radial-gradient(ellipse 35% 30% at 100% 0%, rgba(59,158,255,0.05) 0%, transparent 60%),
+    var(--bg);
+}
+
+.top-bar {
+  height: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  border-bottom: 0.5px solid var(--border);
+  background: rgba(15,15,28,0.8);
+  backdrop-filter: blur(8px);
+  flex-shrink: 0;
+}
+
+.bar-left { display: flex; align-items: center; gap: 12px; }
+
+.bar-logo {
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  color: var(--text);
+}
+
+.room-pill {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--blue);
+  background: rgba(59,158,255,0.1);
+  border: 0.5px solid rgba(59,158,255,0.22);
+  border-radius: 4px;
+  padding: 3px 10px;
+  letter-spacing: 0.1em;
+}
+
+.dj-chips { display: flex; gap: 8px; }
+
+.dj-chip {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--mono);
+  font-size: 10px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  border: 0.5px solid;
+}
+
+.chip-a { color: var(--red); border-color: rgba(232,54,93,0.3); background: var(--red-dim); }
+.chip-b { color: var(--blue); border-color: rgba(59,158,255,0.25); background: var(--blue-dim); }
+.chip-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+
+.bar-right { display: flex; align-items: center; gap: 10px; }
+
+.conn-status {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.small-btn {
+  background: rgba(255,255,255,0.04);
+  border: 0.5px solid var(--border2);
+  color: var(--muted);
+  border-radius: 6px;
+  font-family: var(--mono);
+  font-size: 10px;
+  padding: 4px 10px;
+  cursor: pointer;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  transition: all 0.15s;
+}
+
+.small-btn:hover { color: var(--text); border-color: rgba(255,255,255,0.22); }
+
+/* ─── MAIN LAYOUT ─── */
+.main-layout {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr auto;
+  overflow: hidden;
+}
+
+/* ─── DJ PANELS ─── */
+.dj-panel {
+  display: flex;
+  flex-direction: column;
+  border-right: 0.5px solid var(--border);
+  overflow: hidden;
+  position: relative;
+}
+
+.dj-panel.panel-b { border-right: none; }
+
+.panel-header {
+  padding: 10px 14px 8px;
+  border-bottom: 0.5px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.panel-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 3px 10px;
+  border-radius: 4px;
+}
+
+.panel-a .panel-label { background: var(--red-dim); color: var(--red); border: 0.5px solid rgba(232,54,93,0.28); }
+.panel-b .panel-label { background: var(--blue-dim); color: var(--blue); border: 0.5px solid rgba(59,158,255,0.24); }
+
+.on-air {
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--green);
+  border: 0.5px solid rgba(79,255,176,0.35);
+  background: rgba(79,255,176,0.08);
+  padding: 2px 8px;
+  border-radius: 3px;
+  display: none;
+}
+
+.on-air.visible { display: block; }
+
+/* ─── SCREEN SHARE AREA ─── */
+.screen-share-area {
+  flex: 1;
+  position: relative;
+  background: #050508;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.screen-share-area video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: none;
+}
+
+.screen-share-area video.active { display: block; }
+
+.share-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 24px;
+  text-align: center;
+}
+
+.share-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  border: 1.5px dashed rgba(255,255,255,0.14);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+}
+
+.share-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.share-hint {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.6;
+  max-width: 200px;
+}
+
+.share-btn-inline {
+  background: var(--red);
+  border: none;
+  color: white;
+  border-radius: 7px;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 9px 18px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.share-btn-inline:hover { background: #ff4570; }
+.share-btn-inline:active { transform: scale(0.96); }
+
+.panel-b .share-btn-inline { background: var(--blue); }
+.panel-b .share-btn-inline:hover { background: #5babff; }
+
+/* REMOTE: no share button, just waiting */
+.remote-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 24px;
+  text-align: center;
+}
+
+/* ─── CROP OVERLAY ─── */
+.crop-overlay {
+  position: absolute;
+  inset: 0;
+  display: none;
+  cursor: crosshair;
+  z-index: 10;
+}
+
+.crop-overlay.active { display: block; }
+
+.crop-mask-top, .crop-mask-bottom, .crop-mask-left, .crop-mask-right {
+  position: absolute;
+  background: rgba(0,0,0,0.72);
+}
+
+.crop-handle {
+  position: absolute;
+  border: 1.5px solid var(--amber);
+  pointer-events: none;
+}
+
+.crop-hint {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--amber);
+  background: rgba(0,0,0,0.8);
+  padding: 4px 12px;
+  border-radius: 4px;
+  border: 0.5px solid rgba(255,200,70,0.3);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* ─── BOTTOM STRIP ─── */
+.panel-footer {
+  border-top: 0.5px solid var(--border);
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  background: rgba(15,15,28,0.5);
+}
+
+.footer-track {
+  flex: 1;
+  min-width: 0;
+}
+
+.footer-track-name {
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text);
+}
+
+.footer-track-hint {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--muted);
+}
+
+.footer-actions { display: flex; gap: 6px; align-items: center; }
+
+.icon-btn {
+  background: rgba(255,255,255,0.04);
+  border: 0.5px solid var(--border2);
+  border-radius: 6px;
+  color: var(--muted);
+  cursor: pointer;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 5px 10px;
+  transition: all 0.14s;
+  white-space: nowrap;
+}
+
+.icon-btn:hover { color: var(--text); border-color: rgba(255,255,255,0.22); background: rgba(255,255,255,0.07); }
+
+/* ─── MASTER BAR ─── */
+.master-bar {
+  grid-column: 1 / -1;
+  border-top: 0.5px solid var(--border);
+  background: rgba(10,10,20,0.95);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  gap: 0;
+  flex-shrink: 0;
+  height: 54px;
+}
+
+.master-section {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 16px;
+  height: 100%;
+  border-right: 0.5px solid var(--border);
+}
+
+.master-section:last-child { border-right: none; }
+
+.master-label {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--muted);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.master-label.active-a { color: var(--red); }
+.master-label.active-b { color: var(--blue); }
+
+/* Crossfader */
+.cf-wrap { flex: 1; display: flex; align-items: center; gap: 10px; padding: 0 16px; }
+
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+  background: linear-gradient(to right,
+    rgba(232,54,93,0.55) 0%,
+    rgba(255,255,255,0.08) 50%,
+    rgba(59,158,255,0.5) 100%);
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  cursor: pointer;
+  border: 2px solid rgba(0,0,0,0.25);
+  box-shadow: 0 0 0 2px rgba(255,255,255,0.1);
+  transition: transform 0.1s;
+}
+
+input[type="range"]::-webkit-slider-thumb:active { transform: scale(1.15); }
+
+/* Hand-off */
+.handoff-btn {
+  background: rgba(255,200,70,0.1);
+  border: 0.5px solid rgba(255,200,70,0.28);
+  color: var(--amber);
+  border-radius: 7px;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 7px 14px;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.handoff-btn:hover { background: rgba(255,200,70,0.18); }
+.handoff-btn:active { transform: scale(0.96); }
+
+/* Volume */
+.vol-wrap { display: flex; align-items: center; gap: 8px; }
+
+.vol-wrap input[type="range"] {
+  width: 72px;
+  flex: none;
+  background: linear-gradient(to right, rgba(79,255,176,0.5), rgba(79,255,176,0.12));
+}
+
+/* ─── CHAT DRAWER ─── */
+.chat-drawer {
+  position: fixed;
+  right: 0;
+  top: 44px;
+  bottom: 54px;
+  width: 280px;
+  background: var(--card);
+  border-left: 0.5px solid var(--border2);
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 0.25s ease;
+  z-index: 50;
+}
+
+.chat-drawer.open { transform: translateX(0); }
+
+.chat-header {
+  padding: 12px 14px;
+  border-bottom: 0.5px solid var(--border);
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.close-chat {
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  padding: 0;
+  transition: color 0.15s;
+}
+.close-chat:hover { color: var(--text); }
+
+.chat-msgs {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border2) transparent;
+}
+
+.msg { display: flex; flex-direction: column; gap: 2px; max-width: 85%; }
+.msg.mine { align-self: flex-end; align-items: flex-end; }
+.msg.theirs { align-self: flex-start; }
+
+.msg-from { font-family: var(--mono); font-size: 9px; color: var(--muted); padding: 0 4px; }
+.msg.mine .msg-from { color: rgba(232,54,93,0.55); }
+.msg.theirs .msg-from { color: rgba(59,158,255,0.5); }
+
+.msg-bubble {
+  padding: 6px 11px;
+  border-radius: 10px;
+  font-size: 12px;
+  line-height: 1.45;
+  word-break: break-word;
+  font-family: var(--display);
+}
+
+.msg.mine .msg-bubble { background: rgba(232,54,93,0.18); border: 0.5px solid rgba(232,54,93,0.22); }
+.msg.theirs .msg-bubble { background: rgba(59,158,255,0.12); border: 0.5px solid rgba(59,158,255,0.18); }
+
+.msg-sys {
+  text-align: center;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--muted);
+  padding: 2px 0;
+}
+
+.chat-input-row {
+  display: flex;
+  gap: 6px;
+  padding: 10px;
+  border-top: 0.5px solid var(--border);
+}
+
+.chat-input-row input { flex: 1; font-size: 12px; padding: 8px 10px; border-radius: 7px; }
+
+.send-btn {
+  background: var(--red);
+  border: none;
+  border-radius: 7px;
+  color: white;
+  cursor: pointer;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 8px 12px;
+  transition: background 0.15s;
+}
+.send-btn:hover { background: #ff4570; }
+
+/* ─── TOAST ─── */
+#toast {
+  position: fixed;
+  bottom: 70px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: var(--card2);
+  border: 0.5px solid var(--border2);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 9px 20px;
+  border-radius: 8px;
+  opacity: 0;
+  transition: all 0.25s ease;
+  z-index: 200;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+#toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* ─── MODAL ─── */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.72);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 300;
+  backdrop-filter: blur(4px);
+}
+
+.modal-backdrop.open { display: flex; }
+
+.modal {
+  background: var(--card);
+  border: 0.5px solid var(--border2);
+  border-radius: 14px;
+  padding: 28px 28px 24px;
+  max-width: 380px;
+  width: 90%;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.modal-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.modal-body {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.modal-actions { display: flex; gap: 10px; }
+
+.modal-actions .btn { flex: 1; padding: 10px; }
+</style>
+</head>
+<body>
+
+<!-- ══════ LOBBY ══════ -->
+<div id="lobby" class="screen active">
+  <div class="lobby-inner">
+    <div class="logo-wrap">
+      <div class="logo-mark">
+        <div class="logo-vinyl"></div>
+        <span class="logo-name">B2B / LIVE</span>
+      </div>
+      <div class="logo-tagline">Remote DJ Sessions · Rekordbox Edition</div>
+    </div>
+
+    <div class="lobby-card" id="form-card">
+      <div>
+        <label class="field-label">Your DJ name</label>
+        <input type="text" id="dj-name-input" placeholder="e.g. DJ Haus" maxlength="20" />
+      </div>
+      <button class="btn btn-red" onclick="createRoom()">Create Session</button>
+      <div class="divider">or join with a code</div>
+      <div>
+        <label class="field-label">Room code</label>
+        <input type="text" id="join-code-input" placeholder="e.g. HAUS42" maxlength="8" style="text-transform:uppercase;" />
+      </div>
+      <button class="btn btn-ghost" onclick="joinRoom()">Join Session</button>
+    </div>
+
+    <div class="lobby-card waiting-state" id="waiting-card">
+      <div style="text-align:center;">
+        <div class="field-label" style="text-align:center;margin-bottom:10px;">Share this code with your partner</div>
+        <div class="big-code" id="big-code">——</div>
+      </div>
+      <div class="waiting-hint">
+        <span class="pulse-ring"></span>&nbsp;
+        Waiting for your partner to join&hellip;<br>
+        <span style="font-size:10px;opacity:0.6;">They enter this code on the join screen</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════ SESSION ══════ -->
+<div id="session" class="screen">
+
+  <!-- TOP BAR -->
+  <div class="top-bar">
+    <div class="bar-left">
+      <span class="bar-logo">B2B</span>
+      <span class="room-pill" id="top-room-code">——</span>
+      <div class="dj-chips">
+        <div class="dj-chip chip-a"><div class="chip-dot"></div><span id="chip-name-a">DJ A</span></div>
+        <div class="dj-chip chip-b"><div class="chip-dot"></div><span id="chip-name-b">DJ B</span></div>
+      </div>
+    </div>
+    <div class="bar-right">
+      <div class="conn-status">
+        <span class="pulse-ring" id="conn-dot" style="background:var(--amber);"></span>
+        <span id="conn-label">Connecting…</span>
+      </div>
+      <button class="small-btn" onclick="toggleChat()">Chat</button>
+      <button class="small-btn" onclick="leaveSession()">Leave</button>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main-layout">
+
+    <!-- PANEL A (local DJ) -->
+    <div class="dj-panel panel-a" id="panel-a">
+      <div class="panel-header">
+        <span class="panel-label">Deck A — <span id="panel-a-name">You</span></span>
+        <span class="on-air" id="onair-a">● ON AIR</span>
+      </div>
+
+      <div class="screen-share-area" id="share-area-a">
+        <video id="video-a" autoplay muted playsinline></video>
+        <div class="share-placeholder" id="placeholder-a">
+          <div class="share-icon">🎛</div>
+          <div class="share-title">Share your Rekordbox</div>
+          <div class="share-hint">Click to select your Rekordbox window. Only your partner will see it.</div>
+          <button class="share-btn-inline" onclick="startScreenShare()">Share Window</button>
+        </div>
+        <div class="crop-overlay" id="crop-overlay-a">
+          <div class="crop-mask-top" id="cm-top"></div>
+          <div class="crop-mask-bottom" id="cm-bottom"></div>
+          <div class="crop-mask-left" id="cm-left"></div>
+          <div class="crop-mask-right" id="cm-right"></div>
+          <div class="crop-handle" id="crop-handle"></div>
+          <div class="crop-hint">Drag to set the waveform crop region — double-click to confirm</div>
+        </div>
+      </div>
+
+      <div class="panel-footer">
+        <div class="footer-track">
+          <div class="footer-track-name" id="track-a-name">No track loaded</div>
+          <div class="footer-track-hint" id="track-a-hint">Start Rekordbox, share your window above</div>
+        </div>
+        <div class="footer-actions">
+          <button class="icon-btn" id="crop-btn-a" onclick="startCrop('a')" style="display:none;">Crop</button>
+          <button class="icon-btn" onclick="stopShare()" id="stop-share-btn" style="display:none;">Stop</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PANEL B (remote DJ) -->
+    <div class="dj-panel panel-b" id="panel-b">
+      <div class="panel-header">
+        <span class="panel-label">Deck B — <span id="panel-b-name">Partner</span></span>
+        <span class="on-air" id="onair-b">● ON AIR</span>
+      </div>
+
+      <div class="screen-share-area" id="share-area-b">
+        <video id="video-b" autoplay playsinline></video>
+        <div class="share-placeholder remote-placeholder" id="placeholder-b">
+          <div class="share-icon" style="border-color:rgba(59,158,255,0.2);">🎵</div>
+          <div class="share-title">Waiting for partner</div>
+          <div class="share-hint" style="color:var(--muted);">Your partner's Rekordbox screen will appear here once they share it.</div>
+        </div>
+      </div>
+
+      <div class="panel-footer">
+        <div class="footer-track">
+          <div class="footer-track-name" id="track-b-name">Waiting for partner…</div>
+          <div class="footer-track-hint" id="track-b-hint">Their screen will stream here live</div>
+        </div>
+        <div class="footer-actions">
+          <button class="icon-btn" id="crop-btn-b" onclick="startCrop('b')" style="display:none;">Crop</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MASTER BAR -->
+    <div class="master-bar">
+      <div class="master-section">
+        <span class="master-label" id="cf-label-a">A</span>
+      </div>
+
+      <div class="cf-wrap">
+        <span class="master-label" style="min-width:30px;text-align:right;" id="cf-pct-a">100%</span>
+        <input type="range" id="crossfader" min="0" max="100" value="0" oninput="onCrossfade(this.value)" title="Crossfader: A ← → B" />
+        <span class="master-label" style="min-width:30px;" id="cf-pct-b">0%</span>
+      </div>
+
+      <div class="master-section">
+        <span class="master-label" id="cf-label-b">B</span>
+      </div>
+
+      <div class="master-section">
+        <button class="handoff-btn" onclick="handOff()">⇄ Hand Off</button>
+      </div>
+
+      <div class="master-section">
+        <span class="master-label">Master Vol</span>
+        <div class="vol-wrap">
+          <input type="range" id="master-vol" min="0" max="100" value="85" oninput="onMasterVol(this.value)" title="Master volume" />
+          <span class="master-label" id="vol-pct">85%</span>
+        </div>
+      </div>
+
+      <div class="master-section" style="margin-left:auto;">
+        <span class="master-label">Latency</span>
+        <span class="master-label" id="latency-display" style="color:var(--green);">— ms</span>
+      </div>
+    </div>
+
+  </div><!-- /main-layout -->
+</div><!-- /session -->
+
+<!-- CHAT DRAWER -->
+<div class="chat-drawer" id="chat-drawer">
+  <div class="chat-header">
+    <span>Chat</span>
+    <button class="close-chat" onclick="toggleChat()">✕</button>
+  </div>
+  <div class="chat-msgs" id="chat-msgs"></div>
+  <div class="chat-input-row">
+    <input type="text" id="chat-input" placeholder="Message…" onkeydown="if(event.key==='Enter')sendChat()" />
+    <button class="send-btn" onclick="sendChat()">Send</button>
+  </div>
+</div>
+
+<!-- HANDOFF MODAL -->
+<div class="modal-backdrop" id="handoff-modal">
+  <div class="modal">
+    <div class="modal-title">⇄ Hand Off</div>
+    <div class="modal-body" id="handoff-modal-body">
+      Your partner is requesting the master audio handoff to their deck. Accept to let them take over?
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="rejectHandoff()">Decline</button>
+      <button class="btn btn-red" onclick="acceptHandoff()">Accept Handoff</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* ══════════════════════════════════════════
+   STATE
+══════════════════════════════════════════ */
+const S = {
+  myName: '',
+  partnerName: '',
+  roomCode: '',
+  role: null,          // 'host' | 'guest'
+  peer: null,
+  conn: null,          // data connection
+  call: null,          // media call (we make to partner)
+  inCall: null,        // media call (we receive)
+  localStream: null,   // our screen+audio stream
+  audioCtx: null,
+  gainA: null,
+  gainB: null,
+  masterGain: null,
+  sourceA: null,
+  sourceB: null,
+  remoteStream: null,
+  crossfade: 0,        // 0 = full A, 100 = full B
+  masterDeck: 'a',     // who currently has audio master
+  cropState: {},       // {a: {x,y,w,h}, b: {x,y,w,h}}
+  isCropping: false,
+  cropDeck: null,
+  cropStart: null,
+  pingInterval: null,
+  pingTime: 0,
+  pendingHandoff: false,
+};
+
+/* ══════════════════════════════════════════
+   UTILS
+══════════════════════════════════════════ */
+function toast(msg, dur = 2600) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => el.classList.remove('show'), dur);
+}
+
+function sysMsg(text) {
+  const el = document.getElementById('chat-msgs');
+  const d = document.createElement('div');
+  d.className = 'msg-sys';
+  d.textContent = text;
+  el.appendChild(d);
+  el.scrollTop = el.scrollHeight;
+}
+
+function chatMsg(from, text, side) {
+  const el = document.getElementById('chat-msgs');
+  const d = document.createElement('div');
+  d.className = 'msg ' + side;
+  d.innerHTML = `<div class="msg-from">${from}</div><div class="msg-bubble">${text}</div>`;
+  el.appendChild(d);
+  el.scrollTop = el.scrollHeight;
+}
+
+function setConn(state) {
+  const dot = document.getElementById('conn-dot');
+  const lbl = document.getElementById('conn-label');
+  if (state === 'live') {
+    dot.style.background = 'var(--green)';
+    lbl.textContent = 'Live';
+  } else if (state === 'connecting') {
+    dot.style.background = 'var(--amber)';
+    lbl.textContent = 'Connecting…';
+  } else {
+    dot.style.background = 'var(--red)';
+    lbl.textContent = 'Disconnected';
+  }
+}
+
+function generateCode(name) {
+  const tag = (name || 'DJ').replace(/\s+/g,'').replace(/[^a-zA-Z0-9]/g,'').toUpperCase().slice(0,4) || 'DJ';
+  return tag + Math.floor(10 + Math.random() * 89);
+}
+
+/* ══════════════════════════════════════════
+   LOBBY
+══════════════════════════════════════════ */
+function createRoom() {
+  const name = document.getElementById('dj-name-input').value.trim() || 'DJ Host';
+  S.myName = name;
+  S.role = 'host';
+  S.roomCode = generateCode(name);
+  document.getElementById('big-code').textContent = S.roomCode;
+  document.getElementById('form-card').style.display = 'none';
+  document.getElementById('waiting-card').style.display = 'flex';
+  initPeer(S.roomCode);
+}
+
+function joinRoom() {
+  const name = document.getElementById('dj-name-input').value.trim() || 'DJ Guest';
+  const code = document.getElementById('join-code-input').value.trim().toUpperCase();
+  if (!code) { toast('Enter a room code first'); return; }
+  S.myName = name;
+  S.role = 'guest';
+  S.roomCode = code;
+  initPeer(null, code);
+}
+
+/* ══════════════════════════════════════════
+   PEER.JS
+══════════════════════════════════════════ */
+function initPeer(hostId, connectToId) {
+  // Use self-hosted PeerJS signaling server (same origin)
+  const peerId = hostId || ('guest_' + Math.random().toString(36).slice(2,8));
+  const isSecure = location.protocol === 'https:';
+  S.peer = new Peer(peerId, {
+    host: location.hostname,
+    port: location.port || (isSecure ? 443 : 80),
+    path: '/peerjs',
+    secure: isSecure,
+    debug: 0,
+    config: {
+      iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' },
+      ]
+    }
+  });
+
+  S.peer.on('open', id => {
+    console.log('Peer open:', id);
+    if (connectToId) {
+      // Guest: connect to host
+      const conn = S.peer.connect(connectToId, { reliable: true });
+      setupDataConn(conn);
+      toast('Connecting to room ' + connectToId + '…');
+    }
+  });
+
+  S.peer.on('connection', conn => {
+    // Host receives guest connection
+    setupDataConn(conn);
+  });
+
+  S.peer.on('call', call => {
+    // Receive incoming media stream
+    S.inCall = call;
+    call.answer(S.localStream || undefined);
+    call.on('stream', remoteStream => {
+      S.remoteStream = remoteStream;
+      connectRemoteAudio(remoteStream);
+      const vid = document.getElementById('video-b');
+      vid.srcObject = remoteStream;
+      vid.play().catch(()=>{});
+      document.getElementById('placeholder-b').style.display = 'none';
+      vid.style.display = 'block';
+      document.getElementById('crop-btn-b').style.display = '';
+      document.getElementById('onair-b').classList.add('visible');
+      toast('Partner screen connected!');
+    });
+    call.on('close', () => {
+      document.getElementById('placeholder-b').style.display = 'flex';
+      document.getElementById('video-b').style.display = 'none';
+      document.getElementById('onair-b').classList.remove('visible');
+    });
+  });
+
+  S.peer.on('error', err => {
+    console.error('Peer error:', err);
+    if (err.type === 'peer-unavailable') toast('Room not found. Check the code.');
+    else toast('Connection error: ' + err.type);
+    setConn('disconnected');
+  });
+}
+
+function setupDataConn(conn) {
+  S.conn = conn;
+
+  conn.on('open', () => {
+    setConn('live');
+    // Exchange names
+    conn.send({ type: 'hello', name: S.myName });
+
+    // If guest: after handshake we expect host to call us with media
+    // If host: we call the guest if we have a stream
+    if (S.role === 'host') {
+      enterSession();
+    }
+
+    // Start ping
+    S.pingInterval = setInterval(() => {
+      S.pingTime = Date.now();
+      conn.send({ type: 'ping' });
+    }, 2000);
+  });
+
+  conn.on('data', data => handleData(data));
+
+  conn.on('close', () => {
+    setConn('disconnected');
+    sysMsg('Partner disconnected.');
+    clearInterval(S.pingInterval);
+  });
+
+  conn.on('error', e => { console.error(e); setConn('disconnected'); });
+}
+
+function handleData(data) {
+  switch(data.type) {
+    case 'hello':
+      S.partnerName = data.name;
+      if (S.role === 'guest') {
+        enterSession();
+        S.conn.send({ type: 'hello_ack', name: S.myName });
+      }
+      updateNameChips();
+      sysMsg(data.name + ' joined the session');
+      // Guest: now call the host with our stream (if we have one)
+      if (S.role === 'guest' && S.localStream) {
+        callPartner();
+      }
+      break;
+
+    case 'hello_ack':
+      S.partnerName = data.name;
+      updateNameChips();
+      // Host now calls guest
+      if (S.localStream) callPartner();
+      break;
+
+    case 'ping':
+      S.conn.send({ type: 'pong' });
+      break;
+
+    case 'pong':
+      const lat = Date.now() - S.pingTime;
+      document.getElementById('latency-display').textContent = lat + ' ms';
+      document.getElementById('latency-display').style.color = lat < 80 ? 'var(--green)' : lat < 200 ? 'var(--amber)' : 'var(--red)';
+      break;
+
+    case 'chat':
+      chatMsg(S.partnerName, data.text, 'theirs');
+      break;
+
+    case 'handoff_request':
+      showHandoffModal(data.fromDeck);
+      break;
+
+    case 'handoff_accept':
+      completeHandoff(data.toDeck);
+      toast('Handoff accepted — ' + data.toDeck.toUpperCase() + ' is now master');
+      break;
+
+    case 'handoff_reject':
+      S.pendingHandoff = false;
+      toast('Partner declined the handoff');
+      break;
+
+    case 'track_info':
+      document.getElementById('track-b-name').textContent = data.title || 'Unknown track';
+      document.getElementById('track-b-hint').textContent = data.artist || '';
+      break;
+
+    case 'cf_sync':
+      document.getElementById('crossfader').value = data.val;
+      applyCrossfade(data.val);
+      break;
+  }
+}
+
+function callPartner() {
+  if (!S.localStream || !S.conn) return;
+  // Determine who to call: host calls guest peerId, guest calls host roomCode
+  const targetId = S.role === 'host' ? S.conn.peer : S.roomCode;
+  const call = S.peer.call(targetId, S.localStream);
+  S.call = call;
+  call.on('stream', remoteStream => {
+    S.remoteStream = remoteStream;
+    connectRemoteAudio(remoteStream);
+    const vid = document.getElementById('video-b');
+    vid.srcObject = remoteStream;
+    vid.play().catch(()=>{});
+    document.getElementById('placeholder-b').style.display = 'none';
+    vid.style.display = 'block';
+    document.getElementById('crop-btn-b').style.display = '';
+    document.getElementById('onair-b').classList.add('visible');
+  });
+}
+
+function updateNameChips() {
+  const isHost = S.role === 'host';
+  document.getElementById('chip-name-a').textContent = isHost ? S.myName : S.partnerName;
+  document.getElementById('chip-name-b').textContent = isHost ? S.partnerName : S.myName;
+  document.getElementById('panel-a-name').textContent = S.myName;
+  document.getElementById('panel-b-name').textContent = S.partnerName || 'Partner';
+}
+
+/* ══════════════════════════════════════════
+   SESSION START
+══════════════════════════════════════════ */
+function enterSession() {
+  document.getElementById('lobby').classList.remove('active');
+  document.getElementById('session').classList.add('active');
+  document.getElementById('top-room-code').textContent = S.roomCode;
+  updateNameChips();
+  initAudio();
+  sysMsg('Session started — ' + S.roomCode);
+}
+
+/* ══════════════════════════════════════════
+   WEB AUDIO MIXER
+══════════════════════════════════════════ */
+function initAudio() {
+  try {
+    S.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    S.gainA = S.audioCtx.createGain();
+    S.gainB = S.audioCtx.createGain();
+    S.masterGain = S.audioCtx.createGain();
+    S.gainA.connect(S.masterGain);
+    S.gainB.connect(S.masterGain);
+    S.masterGain.connect(S.audioCtx.destination);
+    S.gainA.gain.value = 1;
+    S.gainB.gain.value = 0;
+    S.masterGain.gain.value = 0.85;
+  } catch(e) {
+    console.warn('AudioContext init failed:', e);
+  }
+}
+
+function connectLocalAudio(stream) {
+  if (!S.audioCtx) return;
+  if (S.sourceA) { try { S.sourceA.disconnect(); } catch(e){} }
+  const audioTracks = stream.getAudioTracks();
+  if (!audioTracks.length) return;
+  const audioStream = new MediaStream(audioTracks);
+  S.sourceA = S.audioCtx.createMediaStreamSource(audioStream);
+  S.sourceA.connect(S.gainA);
+}
+
+function connectRemoteAudio(stream) {
+  if (!S.audioCtx) return;
+  if (S.sourceB) { try { S.sourceB.disconnect(); } catch(e){} }
+  const audioTracks = stream.getAudioTracks();
+  if (!audioTracks.length) return;
+  const audioStream = new MediaStream(audioTracks);
+  S.sourceB = S.audioCtx.createMediaStreamSource(audioStream);
+  S.sourceB.connect(S.gainB);
+}
+
+function onCrossfade(val) {
+  val = parseInt(val);
+  applyCrossfade(val);
+  // Sync to partner
+  if (S.conn) S.conn.send({ type: 'cf_sync', val });
+}
+
+function applyCrossfade(val) {
+  S.crossfade = val;
+  const a = 1 - val / 100;
+  const b = val / 100;
+  if (S.gainA) S.gainA.gain.setTargetAtTime(a, S.audioCtx.currentTime, 0.05);
+  if (S.gainB) S.gainB.gain.setTargetAtTime(b, S.audioCtx.currentTime, 0.05);
+  document.getElementById('cf-pct-a').textContent = Math.round(a * 100) + '%';
+  document.getElementById('cf-pct-b').textContent = Math.round(b * 100) + '%';
+  const la = document.getElementById('cf-label-a');
+  const lb = document.getElementById('cf-label-b');
+  la.className = 'master-label' + (val < 40 ? ' active-a' : '');
+  lb.className = 'master-label' + (val > 60 ? ' active-b' : '');
+}
+
+function onMasterVol(val) {
+  if (S.masterGain) S.masterGain.gain.value = val / 100;
+  document.getElementById('vol-pct').textContent = val + '%';
+}
+
+/* ══════════════════════════════════════════
+   SCREEN SHARE
+══════════════════════════════════════════ */
+async function startScreenShare() {
+  try {
+    if (S.audioCtx && S.audioCtx.state === 'suspended') await S.audioCtx.resume();
+    const stream = await navigator.mediaDevices.getDisplayMedia({
+      video: { frameRate: 30, cursor: 'never' },
+      audio: {
+        echoCancellation: false,
+        noiseSuppression: false,
+        sampleRate: 48000,
+      }
+    });
+
+    S.localStream = stream;
+
+    // Show in local video
+    const vid = document.getElementById('video-a');
+    vid.srcObject = stream;
+    vid.play().catch(()=>{});
+    vid.style.display = 'block';
+    document.getElementById('placeholder-a').style.display = 'none';
+    document.getElementById('crop-btn-a').style.display = '';
+    document.getElementById('stop-share-btn').style.display = '';
+    document.getElementById('onair-a').classList.add('visible');
+
+    connectLocalAudio(stream);
+
+    // If already connected, call partner now
+    if (S.conn && S.conn.open) callPartner();
+
+    stream.getVideoTracks()[0].onended = () => stopShare();
+
+    toast('Screen shared! Tip: click Crop to isolate your waveform view.');
+  } catch(e) {
+    if (e.name !== 'NotAllowedError') toast('Screen share failed: ' + e.message);
+  }
+}
+
+function stopShare() {
+  if (S.localStream) {
+    S.localStream.getTracks().forEach(t => t.stop());
+    S.localStream = null;
+  }
+  const vid = document.getElementById('video-a');
+  vid.srcObject = null;
+  vid.style.display = 'none';
+  document.getElementById('placeholder-a').style.display = 'flex';
+  document.getElementById('crop-btn-a').style.display = 'none';
+  document.getElementById('stop-share-btn').style.display = 'none';
+  document.getElementById('onair-a').classList.remove('visible');
+  toast('Screen share stopped');
+}
+
+/* ══════════════════════════════════════════
+   CROP
+══════════════════════════════════════════ */
+function startCrop(deck) {
+  S.isCropping = true;
+  S.cropDeck = deck;
+  const overlay = document.getElementById('crop-overlay-' + deck);
+  if (!overlay) return;
+  overlay.classList.add('active');
+  const area = document.getElementById('share-area-' + deck);
+
+  let dragging = false;
+  let sx, sy;
+
+  function onMousedown(e) {
+    dragging = true;
+    const rect = area.getBoundingClientRect();
+    sx = e.clientX - rect.left;
+    sy = e.clientY - rect.top;
+    S.cropStart = { x: sx, y: sy };
+  }
+
+  function onMousemove(e) {
+    if (!dragging) return;
+    const rect = area.getBoundingClientRect();
+    const cx = e.clientX - rect.left;
+    const cy = e.clientY - rect.top;
+    const x = Math.min(sx, cx), y = Math.min(sy, cy);
+    const w = Math.abs(cx - sx), h = Math.abs(cy - sy);
+    updateCropUI(deck, x, y, w, h, rect);
+  }
+
+  function onMouseup(e) { dragging = false; }
+
+  function onDblclick(e) {
+    const rect = area.getBoundingClientRect();
+    const handle = document.getElementById('crop-handle');
+    if (!handle) return;
+    const hl = parseInt(handle.style.left) || 0;
+    const ht = parseInt(handle.style.top) || 0;
+    const hw = parseInt(handle.style.width) || rect.width;
+    const hh = parseInt(handle.style.height) || rect.height;
+    // Store crop as % of video element
+    S.cropState[deck] = {
+      x: hl / rect.width,
+      y: ht / rect.height,
+      w: hw / rect.width,
+      h: hh / rect.height
+    };
+    applyCrop(deck);
+    overlay.classList.remove('active');
+    overlay.removeEventListener('mousedown', onMousedown);
+    overlay.removeEventListener('mousemove', onMousemove);
+    overlay.removeEventListener('mouseup', onMouseup);
+    overlay.removeEventListener('dblclick', onDblclick);
+    S.isCropping = false;
+    toast('Crop saved — double-click Crop again to adjust');
+  }
+
+  overlay.addEventListener('mousedown', onMousedown);
+  overlay.addEventListener('mousemove', onMousemove);
+  overlay.addEventListener('mouseup', onMouseup);
+  overlay.addEventListener('dblclick', onDblclick);
+}
+
+function updateCropUI(deck, x, y, w, h, rect) {
+  const handle = document.getElementById('crop-handle');
+  handle.style.left = x + 'px';
+  handle.style.top = y + 'px';
+  handle.style.width = w + 'px';
+  handle.style.height = h + 'px';
+
+  document.getElementById('cm-top').style.cssText = `top:0;left:0;right:0;height:${y}px`;
+  document.getElementById('cm-bottom').style.cssText = `top:${y+h}px;left:0;right:0;bottom:0`;
+  document.getElementById('cm-left').style.cssText = `top:${y}px;left:0;width:${x}px;height:${h}px`;
+  document.getElementById('cm-right').style.cssText = `top:${y}px;left:${x+w}px;right:0;height:${h}px`;
+}
+
+function applyCrop(deck) {
+  const c = S.cropState[deck];
+  if (!c) return;
+  const vid = document.getElementById('video-' + deck);
+  const area = document.getElementById('share-area-' + deck);
+  // Use clip-path on the video to show only the crop region
+  const x1 = (c.x * 100).toFixed(1);
+  const y1 = (c.y * 100).toFixed(1);
+  const x2 = ((c.x + c.w) * 100).toFixed(1);
+  const y2 = ((c.y + c.h) * 100).toFixed(1);
+  vid.style.objectFit = 'fill';
+  vid.style.clipPath = `inset(${y1}% ${100 - x2}% ${100 - y2}% ${x1}%)`;
+  // Scale up to fill the area
+  const scaleX = 1 / c.w;
+  const scaleY = 1 / c.h;
+  const tX = -(c.x / c.w * 100);
+  const tY = -(c.y / c.h * 100);
+  vid.style.transform = `scale(${scaleX}, ${scaleY}) translate(${tX}%, ${tY}%)`;
+  vid.style.transformOrigin = 'top left';
+}
+
+/* ══════════════════════════════════════════
+   HAND-OFF
+══════════════════════════════════════════ */
+function handOff() {
+  if (!S.conn || !S.conn.open) { toast('Not connected to a partner'); return; }
+  S.pendingHandoff = true;
+  S.conn.send({ type: 'handoff_request', fromDeck: S.masterDeck });
+  toast('Hand-off requested — waiting for partner…');
+}
+
+function showHandoffModal(fromDeck) {
+  document.getElementById('handoff-modal-body').textContent =
+    (S.partnerName || 'Your partner') + ' wants to hand off the master audio to your deck. Accept?';
+  document.getElementById('handoff-modal').classList.add('open');
+}
+
+function acceptHandoff() {
+  document.getElementById('handoff-modal').classList.remove('open');
+  const newMaster = S.masterDeck === 'a' ? 'b' : 'a';
+  completeHandoff(newMaster);
+  S.conn.send({ type: 'handoff_accept', toDeck: newMaster });
+  toast('You accepted the handoff — fading audio to your deck');
+}
+
+function rejectHandoff() {
+  document.getElementById('handoff-modal').classList.remove('open');
+  if (S.conn) S.conn.send({ type: 'handoff_reject' });
+}
+
+function completeHandoff(toDeck) {
+  S.masterDeck = toDeck;
+  S.pendingHandoff = false;
+  // Animate crossfader to the new master deck
+  const targetVal = toDeck === 'a' ? 0 : 100;
+  const cfEl = document.getElementById('crossfader');
+  const current = parseInt(cfEl.value);
+  let v = current;
+  const step = targetVal > current ? 2 : -2;
+  const iv = setInterval(() => {
+    v += step;
+    if ((step > 0 && v >= targetVal) || (step < 0 && v <= targetVal)) {
+      v = targetVal;
+      clearInterval(iv);
+    }
+    cfEl.value = v;
+    applyCrossfade(v);
+  }, 20);
+  sysMsg('Master audio handed off to Deck ' + toDeck.toUpperCase());
+}
+
+/* ══════════════════════════════════════════
+   CHAT
+══════════════════════════════════════════ */
+function toggleChat() {
+  document.getElementById('chat-drawer').classList.toggle('open');
+}
+
+function sendChat() {
+  const input = document.getElementById('chat-input');
+  const text = input.value.trim();
+  if (!text) return;
+  chatMsg(S.myName || 'You', text, 'mine');
+  input.value = '';
+  if (S.conn && S.conn.open) {
+    S.conn.send({ type: 'chat', text });
+  }
+}
+
+/* ══════════════════════════════════════════
+   LEAVE
+══════════════════════════════════════════ */
+function leaveSession() {
+  stopShare();
+  if (S.peer) { S.peer.destroy(); S.peer = null; }
+  if (S.audioCtx) { S.audioCtx.close(); S.audioCtx = null; }
+  clearInterval(S.pingInterval);
+  Object.assign(S, { conn: null, call: null, inCall: null, localStream: null, remoteStream: null });
+
+  document.getElementById('session').classList.remove('active');
+  document.getElementById('lobby').classList.add('active');
+  document.getElementById('form-card').style.display = 'flex';
+  document.getElementById('waiting-card').style.display = 'none';
+  document.getElementById('video-b').style.display = 'none';
+  document.getElementById('placeholder-b').style.display = 'flex';
+  document.getElementById('onair-a').classList.remove('visible');
+  document.getElementById('onair-b').classList.remove('visible');
+  document.getElementById('chat-msgs').innerHTML = '';
+}
+</script>
+</body>
+</html>

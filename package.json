@@ -1,0 +1,17 @@
+{
+  "name": "b2b-dj-live",
+  "version": "1.0.0",
+  "description": "Remote B2B DJ session app with Rekordbox screen sharing",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "peer": "^0.9.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
