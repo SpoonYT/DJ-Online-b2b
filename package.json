@@ -4,12 +4,11 @@
   "description": "Remote B2B DJ session app with Rekordbox screen sharing",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "node server.js"
+    "start": "node server.js"
   },
   "dependencies": {
     "express": "^4.18.2",
-    "peer": "^9.0.0"
+    "peer": "^1.0.2"
   },
   "engines": {
     "node": ">=18.0.0"
